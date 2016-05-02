@@ -1,13 +1,18 @@
 package com.sms.deliamao.stockmarketsearch;
 
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Filter;
 
@@ -24,14 +29,17 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private AutoCompleteTextView suggestionTextView;
+    AsyncTask<Void, Void, Void> mTask;
     ArrayList<String> autoCompleteList;
     String url = ""; //  to call the http://deliancapp-env.us-west-1.elasticbeanstalk.com/index.php/index.php
-    String jsonString;
+    String quoteJsonString = "";
+    Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        context = this;
         if (savedInstanceState != null) {
             Log.d(TAG, "onCreate() Restoring previous state");
             /* restore state */
@@ -45,6 +53,13 @@ public class MainActivity extends AppCompatActivity {
         suggestionTextView.setAdapter(autoCompleteAdapter);
         suggestionTextView.setThreshold(1); // setup how many letter need to call
         Log.d(TAG, "this is test");
+
+        Button button1 = (Button)findViewById(R.id.clear);
+        button1.setOnClickListener(mClearListener);
+
+        Button button2 = (Button)findViewById(R.id.getQuote);
+        button2.setOnClickListener(mGetQuoteListener);
+
     }
 
     private class AsyncFetchStockSymbols extends AsyncTask<String, Void, ArrayList<String>>{
@@ -82,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
                         jo = new JSONArray(jsonString);
                         for(int i = 0; i<jo.length();i++ ){
                             JSONObject e = jo.getJSONObject(i);
-                            String symbol = e.getString("Symbol") +" "+e.getString("Name") + "(" + e.getString("Exchange") + ")";
+                            String symbol = e.getString("Symbol");
                             Log.d(TAG, "get: " + symbol);
                             stockSymbols.add(symbol);
                         }
@@ -146,23 +161,117 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     // when the clear button was clicked
-    public void clearInput(View view){
-        AutoCompleteTextView inputInfo = (AutoCompleteTextView) findViewById(R.id.autoCompleteTextView1);
-        //get inputInfo value by getText()；
-        inputInfo.setText("");
+    private OnClickListener mClearListener = new OnClickListener() {
+        public void onClick(View v) {
+            // do something when the button is clicked
+            AutoCompleteTextView inputInfo = (AutoCompleteTextView) findViewById(R.id.autoCompleteTextView1);
+            //get inputInfo value by getText()；
+            inputInfo.setText("");
+        }
+    };
 
-    }
+    // handle get quote function
 
-    // when the get quote button was click
-    public void getQuote(View view){
-        if(validate()){
+    private OnClickListener mGetQuoteListener = new OnClickListener() {
+        public void onClick(View v) {
+            // do something when the button is clicked
+            AutoCompleteTextView inputInfo = (AutoCompleteTextView) findViewById(R.id.autoCompleteTextView1);
+            Log.d(TAG, "getquote: " + inputInfo.getText().toString().length());
+            //validate if the input is blank;
+            if(inputInfo.getText().toString().length()== 0){
+                Log.d(TAG, "length0 " + inputInfo.getText().toString());
+                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                builder.setMessage("please enter a Stock Name/Symbol")
+                        .setCancelable(false)
+                        .setNegativeButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                //do things
+                                dialog.cancel();
+                            }
+                        });
+                AlertDialog alert = builder.create();
+                alert.show();
+
+            }else{
+                // handle the input not empty
+
+                final String quoteURL = "http://deliancapp-env.us-west-1.elasticbeanstalk.com/index.php/index.php?symbolVal=" + inputInfo.getText().toString();
+                mTask = new AsyncTask<Void, Void, Void> () {
+                    @Override
+                    protected void onPreExecute() {
+                        super.onPreExecute();
+                    }
+                    @Override
+                    protected Void doInBackground(Void... params) {
+                        HttpURLConnection c = null;
+                        try {
+                            URL u = new URL(quoteURL);
+                            c = (HttpURLConnection) u.openConnection();
+                            c.setRequestMethod("GET");
+                            c.setRequestProperty("Content-length", "0");
+                            c.setUseCaches(false);
+                            c.setAllowUserInteraction(false);
+                            c.setConnectTimeout(5000);
+                            c.setReadTimeout(5000);
+                            c.connect();
+                            int status = c.getResponseCode();
+                            if (status == 200) {
+                                BufferedReader br = new BufferedReader(new InputStreamReader(c.getInputStream()));
+                                StringBuilder sb = new StringBuilder();
+                                String line;
+                                while ((line = br.readLine()) != null) {
+                                    sb.append(line+"\n");
+                                }
+                                br.close();
+                                quoteJsonString = sb.toString();
+                                return null;
+                            }
+                        }catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        return null;
+
+                    }
+
+                    protected void onPostExecute(Void result) {
+                        super.onPostExecute(result);
+                        JSONObject jo = null;
+                        try {
+                            jo = new JSONObject(quoteJsonString);
+                            if(jo.getString("Message").contains("No symbol matches found for ")){
+                                Log.d(TAG, "joMessage:" + jo.getString("Message"));
+                                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                                builder.setMessage("Invalid Symbol")
+                                        .setCancelable(false)
+                                        .setNegativeButton("OK", new DialogInterface.OnClickListener() {
+                                            public void onClick(DialogInterface dialog, int id) {
+                                                //do things
+                                                dialog.cancel();
+                                            }
+                                        });
+                                AlertDialog alert = builder.create();
+                                alert.show();
+
+                            }else{
+                                Log.d(TAG, "need to handle the right descion " );
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                };
+
+                mTask.execute();
+
+            }
+
+
 
         }
-    }
+    };
 
-    public boolean validate(){
-        EditText inputInfo = (EditText) findViewById(R.id.stock_info);
-        return true;
-        // to validate the input is right or not
-    }
+
+    // when the get quote button was click
+
+
 }

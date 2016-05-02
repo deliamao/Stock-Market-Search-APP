@@ -10,6 +10,7 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.sms.deliamao.stockmarketsearch.MainActivity"
     android:weightSum="10">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -22,6 +23,8 @@
             android:text="@string/search_label"
             android:textSize="20sp"
             android:textColor="#000000" />
+
+
         <AutoCompleteTextView
             android:id="@+id/autoCompleteTextView1"
             android:layout_width="match_parent"
@@ -42,6 +45,7 @@
         android:layout_height="0sp"
         android:weightSum="1">
         <Button
+            android:id="@+id/clear"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="25sp"
@@ -49,6 +53,7 @@
             android:onClick="clearInput"
             android:layout_weight="0.68" />
         <Button
+            android:id="@+id/getQuote"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="25sp"
@@ -56,6 +61,7 @@
             android:onClick="getQuote"
             android:layout_weight="0.5" />
     </LinearLayout>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -77,9 +83,16 @@
             android:id="@+id/switch1"
             android:layout_weight="0.3" />
 
+        <ImageButton
+            android:layout_width="30sp"
+            android:layout_height="30sp"
+            android:id="@+id/imageButton"
+            android:src="@drawable/ic_action_refresh"
+            android:layout_weight="0.3" />
 
 
     </LinearLayout>
+
 
 
 
