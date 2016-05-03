@@ -16,6 +16,10 @@ import android.view.MenuInflater;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.widget.TableLayout;
+
 /**
  * Created by deliamao on 5/2/16.
  */
@@ -81,13 +85,11 @@ public class ResultActivity extends AppCompatActivity {
             }
         });
 
-
-
-
         /*
         ActionBar actionBar = getSupportActionBar();
         actionBar.hide();*/
     }
+
     @Override
     public boolean onSupportNavigateUp(){
         finish();
@@ -170,15 +172,5 @@ public class ResultActivity extends AppCompatActivity {
             return fragments[position];
         }
     }
-
-
-
-
-
-
-
-
 }
-
-
 

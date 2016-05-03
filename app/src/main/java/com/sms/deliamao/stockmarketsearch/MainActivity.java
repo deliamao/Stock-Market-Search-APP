@@ -271,11 +271,8 @@ public class MainActivity extends AppCompatActivity {
                                             });
                                     AlertDialog alert = builder.create();
                                     alert.show();
-
                                 }
                                 // use the intent function to transfer this to another activity
-
-
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -286,7 +283,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
-
     // when the get quote button was click
     // Refresh MainActivity Views. e.g. back button to navigate back.
     public void onResume() {  //
@@ -297,3 +293,4 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "Favourite list: " + Arrays.toString(farvouriteList.toArray()));
     }
 }
+
