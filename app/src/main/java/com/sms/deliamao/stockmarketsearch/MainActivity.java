@@ -13,7 +13,6 @@ import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.Filter;
 
 import org.json.JSONArray;
@@ -238,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
                         JSONObject jo = null;
                         try {
                             jo = new JSONObject(quoteJsonString);
-                            if(jo.getString("Message").contains("No symbol matches found for ")){
+                            if(jo.has("Message")){
                                 Log.d(TAG, "joMessage:" + jo.getString("Message"));
                                 AlertDialog.Builder builder = new AlertDialog.Builder(context);
                                 builder.setMessage("Invalid Symbol")
@@ -253,7 +252,29 @@ public class MainActivity extends AppCompatActivity {
                                 alert.show();
 
                             }else{
-                                Log.d(TAG, "need to handle the right descion " );
+                                if(jo.has("Status") && jo.getString("Status").equals("SUCCESS")){
+                                    Log.d(TAG, "has Status" + jo.getString("Status"));
+                                    Intent intentOfDetail = new Intent(MainActivity.this, ResultActivity.class);
+                                    intentOfDetail.putExtra("QuoteReturnString", quoteJsonString);
+                                    startActivity(intentOfDetail);
+
+                                }else{
+                                    AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                                    builder.setMessage("Symbol return Status is false, chooose another one")
+                                            .setCancelable(false)
+                                            .setNegativeButton("OK", new DialogInterface.OnClickListener() {
+                                                public void onClick(DialogInterface dialog, int id) {
+                                                    //do things
+                                                    dialog.cancel();
+                                                }
+                                            });
+                                    AlertDialog alert = builder.create();
+                                    alert.show();
+
+                                }
+                                // use the intent function to transfer this to another activity
+
+
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
