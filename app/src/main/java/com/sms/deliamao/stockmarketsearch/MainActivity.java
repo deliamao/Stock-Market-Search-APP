@@ -24,6 +24,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -33,17 +34,19 @@ public class MainActivity extends AppCompatActivity {
     String url = ""; //  to call the http://deliancapp-env.us-west-1.elasticbeanstalk.com/index.php/index.php
     String quoteJsonString = "";
     Context context;
+    FavouriteStockManager mFavouriteStockManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mFavouriteStockManager = new FavouriteStockManager(this);
+
         setContentView(R.layout.activity_main);
         context = this;
         if (savedInstanceState != null) {
             Log.d(TAG, "onCreate() Restoring previous state");
             /* restore state */
         }
-        Log.d(TAG, "onCreate() debug debug");
 
         suggestionTextView=(AutoCompleteTextView)findViewById(R.id.autoCompleteTextView1);
 
@@ -77,8 +80,8 @@ public class MainActivity extends AppCompatActivity {
                 conn.setRequestProperty("content-length","0");
                 conn.setUseCaches(false);
                 conn.setAllowUserInteraction(false);
-                conn.setConnectTimeout(5000);
-                conn.setReadTimeout(5000);
+                conn.setConnectTimeout(20000);
+                conn.setReadTimeout(20000);
                 conn.connect();
                 int status = conn.getResponseCode();
                 if(status == 200) {
@@ -87,7 +90,6 @@ public class MainActivity extends AppCompatActivity {
                     String line;
                     while((line=br.readLine()) != null){
                         sb.append(line + "\n");
-
                     }
                     br.close();
                     String jsonString = sb.toString();
@@ -107,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.e(TAG, "Fail to fetch stock symbols: " + constraint[0] + ". Code:" + status);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e(TAG, "Fail to connect: " + stockSymbolUrl + ", Message:" + e.toString());
             }
             return stockSymbols;
         }
@@ -170,12 +172,11 @@ public class MainActivity extends AppCompatActivity {
     };
 
     // handle get quote function
-
     private OnClickListener mGetQuoteListener = new OnClickListener() {
         public void onClick(View v) {
             // do something when the button is clicked
             AutoCompleteTextView inputInfo = (AutoCompleteTextView) findViewById(R.id.autoCompleteTextView1);
-            Log.d(TAG, "getquote: " + inputInfo.getText().toString().length());
+            Log.d(TAG, "getquote: " + inputInfo.getText().toString());
             //validate if the input is blank;
             if(inputInfo.getText().toString().length()== 0){
                 Log.d(TAG, "length0 " + inputInfo.getText().toString());
@@ -193,7 +194,6 @@ public class MainActivity extends AppCompatActivity {
 
             }else{
                 // handle the input not empty
-
                 final String quoteURL = "http://deliancapp-env.us-west-1.elasticbeanstalk.com/index.php/index.php?symbolVal=" + inputInfo.getText().toString();
                 mTask = new AsyncTask<Void, Void, Void> () {
                     @Override
@@ -256,6 +256,7 @@ public class MainActivity extends AppCompatActivity {
                                     Log.d(TAG, "has Status" + jo.getString("Status"));
                                     Intent intentOfDetail = new Intent(MainActivity.this, ResultActivity.class);
                                     intentOfDetail.putExtra("QuoteReturnString", quoteJsonString);
+                                    Log.d(TAG, "getQuote: " + quoteJsonString);
                                     startActivity(intentOfDetail);
 
                                 }else{
@@ -281,18 +282,18 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 };
-
                 mTask.execute();
-
             }
-
-
-
         }
     };
 
-
     // when the get quote button was click
-
-
+    // Refresh MainActivity Views. e.g. back button to navigate back.
+    public void onResume() {  //
+        Log.d(TAG, "onResume");
+        super.onResume();
+        //Refresh Favourite lists here.
+        ArrayList<String> farvouriteList = mFavouriteStockManager.getAllFavourites();
+        Log.d(TAG, "Favourite list: " + Arrays.toString(farvouriteList.toArray()));
+    }
 }
