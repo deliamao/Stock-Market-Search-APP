@@ -9,16 +9,18 @@ import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
-import android.view.MenuItem;
 import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+import android.widget.TextView;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
-import android.widget.TableLayout;
 
 /**
  * Created by deliamao on 5/2/16.
@@ -29,11 +31,15 @@ public class ResultActivity extends AppCompatActivity {
     private ViewPager viewPager;
     private MenuItem mFavouriteButton;
     private FavouriteStockManager mFavouriteStockManager;
-    private JSONObject mStockQuote;
+    private JSONObject mStockQuoteJSON;
     private String mStockId;
     private String mStockName;
+    private StockQuote mCurrentStockQuote;
+
+    ListView stockList;
 
     String quoteJson;
+    String  newJson;
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -45,15 +51,16 @@ public class ResultActivity extends AppCompatActivity {
             finish();
         } else {
             try {
-                mStockQuote = new JSONObject(extras.getString("QuoteReturnString"));
-                mStockId = mStockQuote.getString("Symbol");
-                mStockName = mStockQuote.getString("Name");
+                mStockQuoteJSON = new JSONObject(extras.getString("QuoteReturnString"));
+                mCurrentStockQuote = new StockQuote(mStockQuoteJSON);
+                mStockId = mStockQuoteJSON.getString("Symbol");
+                mStockName = mStockQuoteJSON.getString("Name");
             } catch (JSONException e) {
                 Log.e(TAG, "Unable to parse QuoteReturnString.");
                 finish();
             }
         }
-        Log.d(TAG, mStockQuote.toString());
+        Log.d(TAG, mStockQuoteJSON.toString());
 
         // Init any UI views in following.
         setContentView(R.layout.stock_detail);
@@ -85,11 +92,109 @@ public class ResultActivity extends AppCompatActivity {
             }
         });
 
-        /*
-        ActionBar actionBar = getSupportActionBar();
-        actionBar.hide();*/
+        /*************************** headle news feed code end  *******************************/
+       if(extras != null){
+            Log.d(TAG, "none object " );
+            newJson = extras.getString("newsReturnString");
+           // get the whole news feed;
+            Log.d(TAG, "newsReturnString: " );
+        }
+       //test
+        //Intent intentOfDetail2 = new Intent(ResultActivity.this, TestHistorical.class);
+        //startActivity(intentOfDetail2);
+
+
+        /*************************** headle news feed  code end  *******************************/
+// Crazy ViewList problem
+        /*************************** headle stock detail code *******************************/
+        String[] rcontent = new String[11];
+        String [] rtitle = {"NAME","SYMBOL","LASTPRICE","CHANGE","TIMESTAPM","MARKETCAP","VOLUME","CHANGEYTD","HIGH","LOW","OPEN"};
+        if (extras!= null){
+            quoteJson = extras.getString("QuoteReturnString");
+            Log.d(TAG, "extras de quote result" + quoteJson);
+            Log.d(TAG, "extras de quote result" + rtitle[5]);
+            JSONObject quoteObject = null;
+            try{
+                quoteObject = new JSONObject(quoteJson);
+                rcontent[0] = quoteObject.getString("Name");
+                rcontent[1] = quoteObject.getString("Symbol");
+                rcontent[2] = quoteObject.getString("LastPrice");
+                rcontent[3] = quoteObject.getString("Change");
+                rcontent[4] = quoteObject.getString("Timestamp");
+                rcontent[5] = quoteObject.getString("MarketCap");
+                rcontent[6] = quoteObject.getString("Volume");
+                rcontent[7] = quoteObject.getString("ChangeYTD");
+                rcontent[8] = quoteObject.getString("High");
+                rcontent[9] = quoteObject.getString("Low");
+                rcontent[10] = quoteObject.getString("Open");
+                Log.d(TAG, "extra de quote result" + rcontent[5]);
+                //D New Actioin
+                /*
+                Intent intentOfDetail = new Intent(ResultActivity.this, GenerateCurrent.class);
+                intentOfDetail.putExtra("stockTitle", rtitle);
+                intentOfDetail.putExtra("stockContent", rcontent);
+                startActivity(intentOfDetail);
+                */
+                // D New Action
+            }catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        View v = getLayoutInflater().inflate(R.layout.current, null);
+        Log.d(TAG, "view" + v);
+        stockList =(ListView) v.findViewById(R.id.listView);
+        Log.d(TAG, "stockList" + stockList);
+
+        stockList.setAdapter(new StockAdapter(this,rtitle,rcontent));
+        Log.d(TAG, "setAdapther" + this);
     }
 
+
+    // new Action
+
+    public class StockAdapter extends ArrayAdapter<String> {
+        String[] title;
+        String[] contents;
+        Context c;
+        LayoutInflater inflater = null;
+        //only set up no image
+
+        public StockAdapter(Context context, String[] title, String[] contents){
+            super(context, R.layout.list_model,title);
+            this.c = context;
+            Log.d(TAG, "context" + c);
+            this.title = title;
+            this.contents = contents;
+            Log.d(TAG, "extra de quote result" + title[5]);
+        }
+
+        public class ViewHolder{
+            TextView stockTitle;
+            TextView  sdCont;
+        }
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent){
+            Log.d(TAG, "this is the view" + convertView);
+            if(convertView == null){
+                inflater =(LayoutInflater)c.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                convertView = inflater.inflate(R.layout.list_model,null);
+                Log.d(TAG, "convertView" + contents[position]);
+                //convertView = getLayoutInflater().inflate(R.layout.list_model, parent, false);
+
+            }
+
+            final ViewHolder holder = new ViewHolder();
+            holder.stockTitle = (TextView) convertView.findViewById(R.id.textView1);
+            holder.sdCont =(TextView) convertView.findViewById(R.id.textView2);
+            //Assign Data
+            holder.stockTitle.setText(title[position]);
+            holder.sdCont.setText(contents[position]);
+            Log.d(TAG, "Adapther test" + contents[position]);
+            return convertView;
+        }
+
+    }
+    /*************************** headle stock detail code end  *******************************/
     @Override
     public boolean onSupportNavigateUp(){
         finish();
@@ -122,7 +227,7 @@ public class ResultActivity extends AppCompatActivity {
                     mFavouriteStockManager.removeFavourite(mStockId);
                     item.setIcon(R.drawable.ic_star_outline);
                 } else {
-                    mFavouriteStockManager.addFavourite(mStockId);
+                    mFavouriteStockManager.addOrUpdateFavourite(mCurrentStockQuote);
                     item.setIcon(R.drawable.ic_filled_star);
                 }
                 return true;
@@ -133,6 +238,8 @@ public class ResultActivity extends AppCompatActivity {
                 return true;
 
             default:
+
+
                 // If we got here, the user's action was not recognized.
                 // Invoke the superclass to handle it.
                 return super.onOptionsItemSelected(item);

@@ -19,6 +19,14 @@
             android:name=".ResultActivity"
             android:label="@string/app_name"
             />
+        <activity
+            android:name=".GenerateCurrent"
+            android:label="@string/app_name"
+            />
+        <activity
+            android:name=".TestHistorical"
+            android:label="@string/app_name"
+            />
 
     </application>
 
