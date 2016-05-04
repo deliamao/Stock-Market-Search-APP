@@ -3,6 +3,7 @@ package com.sms.deliamao.stockmarketsearch;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
@@ -14,6 +15,8 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.Filter;
+import android.widget.ImageView;
+import com.facebook.FacebookSdk;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -24,26 +27,37 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-
+import java.util.Arrays;
+import com.facebook.appevents.AppEventsLogger;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private AutoCompleteTextView suggestionTextView;
     AsyncTask<Void, Void, Void> mTask;
+    AsyncTask<Void, Void, Void> newsTask;
+    AsyncTask<Void, Void, Void> hischartTask;
     ArrayList<String> autoCompleteList;
     String url = ""; //  to call the http://deliancapp-env.us-west-1.elasticbeanstalk.com/index.php/index.php
     String quoteJsonString = "";
+    String newsJsonString ="";
     Context context;
+    FavouriteStockManager mFavouriteStockManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mFavouriteStockManager = new FavouriteStockManager(this);
+        FacebookSdk.sdkInitialize(getApplicationContext());
+        AppEventsLogger.activateApp(this);
+
         setContentView(R.layout.activity_main);
         context = this;
         if (savedInstanceState != null) {
             Log.d(TAG, "onCreate() Restoring previous state");
             /* restore state */
         }
-        Log.d(TAG, "onCreate() debug debug");
+
+
+
 
         suggestionTextView=(AutoCompleteTextView)findViewById(R.id.autoCompleteTextView1);
 
@@ -77,8 +91,8 @@ public class MainActivity extends AppCompatActivity {
                 conn.setRequestProperty("content-length","0");
                 conn.setUseCaches(false);
                 conn.setAllowUserInteraction(false);
-                conn.setConnectTimeout(5000);
-                conn.setReadTimeout(5000);
+                conn.setConnectTimeout(20000);
+                conn.setReadTimeout(20000);
                 conn.connect();
                 int status = conn.getResponseCode();
                 if(status == 200) {
@@ -87,7 +101,6 @@ public class MainActivity extends AppCompatActivity {
                     String line;
                     while((line=br.readLine()) != null){
                         sb.append(line + "\n");
-
                     }
                     br.close();
                     String jsonString = sb.toString();
@@ -107,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.e(TAG, "Fail to fetch stock symbols: " + constraint[0] + ". Code:" + status);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e(TAG, "Fail to connect: " + stockSymbolUrl + ", Message:" + e.toString());
             }
             return stockSymbols;
         }
@@ -170,12 +183,11 @@ public class MainActivity extends AppCompatActivity {
     };
 
     // handle get quote function
-
     private OnClickListener mGetQuoteListener = new OnClickListener() {
         public void onClick(View v) {
             // do something when the button is clicked
             AutoCompleteTextView inputInfo = (AutoCompleteTextView) findViewById(R.id.autoCompleteTextView1);
-            Log.d(TAG, "getquote: " + inputInfo.getText().toString().length());
+            Log.d(TAG, "getquote: " + inputInfo.getText().toString());
             //validate if the input is blank;
             if(inputInfo.getText().toString().length()== 0){
                 Log.d(TAG, "length0 " + inputInfo.getText().toString());
@@ -192,8 +204,75 @@ public class MainActivity extends AppCompatActivity {
                 alert.show();
 
             }else{
-                // handle the input not empty
+                // handle get Quote Detial
 
+                //Intent intentOfDetail = new Intent(MainActivity.this, ResultActivity.class);
+
+                /*************************** headle news feed code end  *******************************/
+                final String newsURL = "http://deliancapp-env.us-west-1.elasticbeanstalk.com/index.php/index.php?bingVal=" + inputInfo.getText().toString();
+                newsTask = new AsyncTask<Void, Void, Void> () {
+                    @Override
+                    protected void onPreExecute() {
+                        super.onPreExecute();
+                    }
+                    @Override
+                    protected Void doInBackground(Void... params) {
+                        HttpURLConnection c = null;
+                        try {
+                            URL u = new URL(newsURL);
+                            c = (HttpURLConnection) u.openConnection();
+                            c.setRequestMethod("GET");
+                            c.setRequestProperty("Content-length", "0");
+                            c.setUseCaches(false);
+                            c.setAllowUserInteraction(false);
+                            c.setConnectTimeout(5000);
+                            c.setReadTimeout(5000);
+                            c.connect();
+                            int status = c.getResponseCode();
+                            if (status == 200) {
+                                Log.d(TAG, "MainGetnewsString0: ");
+                                BufferedReader br = new BufferedReader(new InputStreamReader(c.getInputStream()));
+                                StringBuilder sb = new StringBuilder();
+                                String line;
+                                while ((line = br.readLine()) != null) {
+                                    sb.append(line+"\n");
+                                }
+                                br.close();
+                                //newsJsonString = sb.toString();
+                                return null;
+                            }
+                        }catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        return null;
+
+                    }
+
+                    protected void onPostExecute(Void result) {
+                        super.onPostExecute(result);
+                        JSONObject newsJson = null;
+                        try {
+                            Log.d(TAG, "MainGetnewsString: ");
+                            newsJson = new JSONObject(newsJsonString);
+                            //Intent intentOfNewsDetail = new Intent(MainActivity.this, ResultActivity.class);
+                            Log.d(TAG, "MainGetnewsString1: ");
+                            //intentOfDetail.putExtra("newsReturnString", newsJsonString);
+                            Log.d(TAG, "MainGetnewsString2: ");
+                            //startActivity(intentOfNewsDetail);
+                            Log.d(TAG, "MainGetnewsString3: ");
+
+                            // use the intent function to transfer this to another activity
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                };
+                newsTask.execute();
+
+                /*************************** headle news feed  code end  *******************************/
+
+                /// handle stock detail problem
                 final String quoteURL = "http://deliancapp-env.us-west-1.elasticbeanstalk.com/index.php/index.php?symbolVal=" + inputInfo.getText().toString();
                 mTask = new AsyncTask<Void, Void, Void> () {
                     @Override
@@ -238,7 +317,7 @@ public class MainActivity extends AppCompatActivity {
                         try {
                             jo = new JSONObject(quoteJsonString);
                             if(jo.has("Message")){
-                                Log.d(TAG, "joMessage:" + jo.getString("Message"));
+                                Log.d(TAG, "stock detail has Message or not:" + jo.getString("Message"));
                                 AlertDialog.Builder builder = new AlertDialog.Builder(context);
                                 builder.setMessage("Invalid Symbol")
                                         .setCancelable(false)
@@ -254,9 +333,12 @@ public class MainActivity extends AppCompatActivity {
                             }else{
                                 if(jo.has("Status") && jo.getString("Status").equals("SUCCESS")){
                                     Log.d(TAG, "has Status" + jo.getString("Status"));
+
                                     Intent intentOfDetail = new Intent(MainActivity.this, ResultActivity.class);
                                     intentOfDetail.putExtra("QuoteReturnString", quoteJsonString);
+                                    intentOfDetail.putExtra("newsReturnString", newsJsonString);
                                     startActivity(intentOfDetail);
+                                    Log.d(TAG, "getQuote: " + quoteJsonString);
 
                                 }else{
                                     AlertDialog.Builder builder = new AlertDialog.Builder(context);
@@ -270,11 +352,8 @@ public class MainActivity extends AppCompatActivity {
                                             });
                                     AlertDialog alert = builder.create();
                                     alert.show();
-
                                 }
                                 // use the intent function to transfer this to another activity
-
-
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -284,15 +363,19 @@ public class MainActivity extends AppCompatActivity {
 
                 mTask.execute();
 
+
+
             }
-
-
-
         }
     };
-
-
     // when the get quote button was click
-
-
+    // Refresh MainActivity Views. e.g. back button to navigate back.
+    public void onResume() {  //
+        Log.d(TAG, "onResume");
+        super.onResume();
+        //Refresh Favourite lists here.
+        ArrayList<String> farvouriteList = mFavouriteStockManager.getAllFavourites();
+        Log.d(TAG, "Favourite list: " + Arrays.toString(farvouriteList.toArray()));
+    }
 }
+
