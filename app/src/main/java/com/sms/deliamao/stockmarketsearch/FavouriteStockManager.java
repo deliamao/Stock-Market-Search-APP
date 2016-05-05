@@ -15,16 +15,19 @@ public class FavouriteStockManager {
     }
 
     public static final String PREFS_NAME = "MyFavourites";
-    public void addFavourite(String symbol) {
+
+    public void addOrUpdateFavourite(StockQuote quote) {
         SharedPreferences settings = mContext.getSharedPreferences(PREFS_NAME, 0);
         SharedPreferences.Editor editor = settings.edit();
-        editor.putBoolean(symbol, true);
+        editor.putString(quote.getSymbol(), quote.toJSONString());
         editor.commit();
 
     }
     public boolean isFavourite(String symbol) {
         SharedPreferences settings = mContext.getSharedPreferences(PREFS_NAME, 0);
-        return settings.getBoolean(symbol, false);
+
+        return settings.contains(symbol);
+
     }
     public void removeFavourite(String symbol) {
         SharedPreferences settings = mContext.getSharedPreferences(PREFS_NAME, 0);
@@ -33,12 +36,17 @@ public class FavouriteStockManager {
         editor.commit();
     }
 
-    public ArrayList<String> getAllFavourites() {
-        ArrayList<String> allFavourites = new ArrayList<String>();
+
+    public ArrayList<StockQuote> getAllFavourites() {
+        ArrayList<StockQuote> allFavourites = new ArrayList<StockQuote>();
         SharedPreferences settings = mContext.getSharedPreferences(PREFS_NAME, 0);
         Map<String, ?> allEntries = settings.getAll();
         for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
-            allFavourites.add(entry.getKey());
+            String jsonString  = entry.getValue().toString();
+            StockQuote quote = StockQuote.fromJSONString(jsonString);
+            quote.setSymbol(entry.getKey());
+            allFavourites.add(quote);
+
         }
         return allFavourites;
     }

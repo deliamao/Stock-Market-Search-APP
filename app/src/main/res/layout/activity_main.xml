@@ -9,26 +9,26 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.sms.deliamao.stockmarketsearch.MainActivity"
-    android:weightSum="10">
+    android:weightSum="1">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="80dp"
         android:orientation="vertical"
-        android:layout_weight="2">
+        android:layout_weight="0"
+        android:weightSum="1">
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_weight="1"
-            android:layout_height="0dp"
+            android:layout_width="match_parent"
+            android:layout_weight="0.1"
+            android:layout_height="25dp"
             android:text="@string/search_label"
-            android:textSize="20sp"
+            android:textSize="20dp"
+            android:textStyle="bold"
             android:textColor="#000000" />
-
-
         <AutoCompleteTextView
             android:id="@+id/autoCompleteTextView1"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="50dp"
             android:ems="10"
             android:layout_below="@+id/stock_info"
             android:layout_alignLeft="@+id/stock_info"
@@ -41,22 +41,22 @@
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_weight="2"
-        android:layout_height="0sp"
+        android:layout_height="wrap_content"
+        android:padding="5dp"
         android:weightSum="1">
         <Button
             android:id="@+id/clear"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="25sp"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:textSize="20dp"
             android:text="@string/clear"
             android:onClick="clearInput"
-            android:layout_weight="0.68" />
+            android:layout_weight="0.5" />
         <Button
             android:id="@+id/getQuote"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="25sp"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:textSize="20dp"
             android:text="@string/GET"
             android:onClick="getQuote"
             android:layout_weight="0.5" />
@@ -64,36 +64,46 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
+        android:layout_height="50dp"
+        android:padding="5dp"
+        android:layout_weight="0"
+        android:weightSum="1"
         android:orientation="horizontal">
-
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="66dp"
-            android:layout_weight="0.1"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:gravity="center|left"
+            android:layout_weight="0.5"
             android:text="@string/Fav"
-            android:textSize="20sp"
+            android:textSize="20dp"
+            android:textStyle="bold"
             android:textColor="#000000" />
 
         <Switch
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:layout_height="30dp"
+            android:layout_weight="0.4"
             android:text="Auto Refresh"
-            android:id="@+id/switch1"
-            android:layout_weight="0.3" />
+            android:id="@+id/switch1"/>
 
         <ImageButton
-            android:layout_width="30sp"
-            android:layout_height="30sp"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.1"
+            android:background="@null"
             android:id="@+id/imageButton"
-            android:src="@drawable/ic_action_refresh"
-            android:layout_weight="0.3" />
-
-
+            android:src="@drawable/ic_refresh"/>
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
 
-
-
+        android:orientation="vertical">
+        <ListView
+            android:id="@+id/favourite_stocks_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        </ListView>
+    </LinearLayout>
 </LinearLayout>

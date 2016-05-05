@@ -1,9 +1,8 @@
 package com.sms.deliamao.stockmarketsearch;
 
-import com.facebook.FacebookSdk;
+
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.net.Uri;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
@@ -24,11 +23,19 @@ import android.widget.TextView;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import android.net.Uri;
+import android.widget.Toast;
+
+import com.facebook.CallbackManager;
+import com.facebook.FacebookSdk;
 import  com.facebook.appevents.AppEventsLogger;
 import com.facebook.share.model.ShareLinkContent;
 import com.facebook.share.model.SharePhoto;
 import com.facebook.share.model.SharePhotoContent;
 import com.facebook.share.widget.LikeView;
+import com.facebook.share.widget.MessageDialog;
+import com.facebook.share.widget.ShareDialog;
+
 
 /**
  * Created by deliamao on 5/2/16.
@@ -39,9 +46,16 @@ public class ResultActivity extends AppCompatActivity {
     private ViewPager viewPager;
     private MenuItem mFavouriteButton;
     private FavouriteStockManager mFavouriteStockManager;
-    private JSONObject mStockQuote;
+    private JSONObject mStockQuoteJSON;
     private String mStockId;
     private String mStockName;
+    private String mStockLastPrice;
+
+    private StockQuote mCurrentStockQuote;
+    // facebook text ;
+
+    ShareDialog shareDialog;
+    CallbackManager callbackManager;
 
     ListView stockList;
 
@@ -50,8 +64,13 @@ public class ResultActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // facebook:
         FacebookSdk.sdkInitialize(getApplicationContext());
-        AppEventsLogger.activateApp(this);
+        callbackManager = CallbackManager.Factory.create();
+        shareDialog = new ShareDialog(this);
+
+
+
         // Init any table here.
         mFavouriteStockManager = new FavouriteStockManager(this);
         Bundle extras = getIntent().getExtras();
@@ -60,15 +79,17 @@ public class ResultActivity extends AppCompatActivity {
             finish();
         } else {
             try {
-                mStockQuote = new JSONObject(extras.getString("QuoteReturnString"));
-                mStockId = mStockQuote.getString("Symbol");
-                mStockName = mStockQuote.getString("Name");
+                mStockQuoteJSON = new JSONObject(extras.getString("QuoteReturnString"));
+                mCurrentStockQuote = new StockQuote(mStockQuoteJSON);
+                mStockId = mStockQuoteJSON.getString("Symbol");
+                mStockName = mStockQuoteJSON.getString("Name");
+                mStockLastPrice = mStockQuoteJSON.getString("LastPrice");
             } catch (JSONException e) {
                 Log.e(TAG, "Unable to parse QuoteReturnString.");
                 finish();
             }
         }
-        Log.d(TAG, mStockQuote.toString());
+        Log.d(TAG, mStockQuoteJSON.toString());
 
         // Init any UI views in following.
         setContentView(R.layout.stock_detail);
@@ -101,13 +122,13 @@ public class ResultActivity extends AppCompatActivity {
         });
 
         /*************************** headle news feed code end  *******************************/
-       if(extras != null){
+        if(extras != null){
             Log.d(TAG, "none object " );
             newJson = extras.getString("newsReturnString");
-           // get the whole news feed;
+            // get the whole news feed;
             Log.d(TAG, "newsReturnString: " );
         }
-       //test
+        //test
         //Intent intentOfDetail2 = new Intent(ResultActivity.this, TestHistorical.class);
         //startActivity(intentOfDetail2);
 
@@ -235,21 +256,30 @@ public class ResultActivity extends AppCompatActivity {
                     mFavouriteStockManager.removeFavourite(mStockId);
                     item.setIcon(R.drawable.ic_star_outline);
                 } else {
-                    mFavouriteStockManager.addFavourite(mStockId);
+                    mFavouriteStockManager.addOrUpdateFavourite(mCurrentStockQuote);
                     item.setIcon(R.drawable.ic_filled_star);
                 }
                 return true;
             case R.id.action_fb:
-                // face book part 4 part
-                // share URI
-                ShareLinkContent uricontent = new ShareLinkContent.Builder()
-                        .setContentUrl(Uri.parse("https://developers.facebook.com"))
-                        .build();
-               // share image  // it should byahood image
+                // facebook function
+                String stockImg = "http://chart.finance.yahoo.com/t?s="+mStockId+"&lang=en-US&width=300&height=300";
+                String title = "Current Stock Price of "+ mStockName+ " is $" + mStockLastPrice;
+                String subhead = "Stock Information of "+mStockName;
+                String yahooURL ="http://finance.yahoo.com/q?s=" + mStockId;
+
+                if (ShareDialog.canShow(ShareLinkContent.class)) {
+                    ShareLinkContent linkContent = new ShareLinkContent.Builder()
+                            .setContentTitle(title)
+                            .setContentDescription(subhead)
+                            .setContentUrl(Uri.parse(yahooURL))
+                            .setImageUrl(Uri.parse(stockImg))
+                            .build();
+
+                    shareDialog.show(linkContent);
+                }
 
                 // User chose the "Favorite" action, mark the current item
                 // as a favorite...
-                // it should be the action fb share~~~
                 Log.d(TAG, "action_fb");
                 return true;
 
@@ -261,6 +291,18 @@ public class ResultActivity extends AppCompatActivity {
                 return super.onOptionsItemSelected(item);
 
         }
+    }
+   /// facebook Function
+    protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        callbackManager.onActivityResult(requestCode, resultCode, data);
+            if (resultCode == RESULT_OK) {
+                Toast.makeText(ResultActivity.this, "you share this post", Toast.LENGTH_SHORT).show();
+            }else{
+                Toast.makeText(ResultActivity.this, "you didn't share this post", Toast.LENGTH_SHORT).show();
+            }
+
+
     }
 
 
