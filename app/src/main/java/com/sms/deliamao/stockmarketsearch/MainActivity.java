@@ -18,7 +18,10 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.Filter;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -30,18 +33,13 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private AutoCompleteTextView suggestionTextView;
-    AsyncTask<Void, Void, Void> mTask;
-    AsyncTask<Void, Void, Void> newsTask;
     AsyncTask<Void, Void, Void> hischartTask;
-    ArrayList<String> autoCompleteList;
     String quoteJsonString = "";
     String newsJsonString ="";
     Context context;
@@ -67,8 +65,8 @@ public class MainActivity extends AppCompatActivity {
         suggestionTextView.setThreshold(1); // setup how many letter need to call
         Log.d(TAG, "this is test");
 
-        Button button1 = (Button)findViewById(R.id.clear);
-        button1.setOnClickListener(new OnClickListener() {
+        Button clearButton = (Button)findViewById(R.id.clear);
+        clearButton.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 // do something when the button is clicked
                 AutoCompleteTextView inputInfo = (AutoCompleteTextView) findViewById(R.id.autoCompleteTextView1);
@@ -77,8 +75,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Button button2 = (Button)findViewById(R.id.getQuote);
-        button2.setOnClickListener(new OnClickListener() {
+        Button quoteButton = (Button)findViewById(R.id.getQuote);
+        quoteButton.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 AutoCompleteTextView inputInfo = (AutoCompleteTextView) findViewById(R.id.autoCompleteTextView1);
                 String symbol = inputInfo.getText().toString();
@@ -103,6 +101,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         updateStockFavouriteDataAndView();
+        ImageButton refreshButton = (ImageButton)findViewById(R.id.button_refresh_favourite);
+        refreshButton.setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                Log.d(TAG, "updateStockFavouriteDataAndView");
+                updateStockFavouriteDataAndView();
+            }
+        });
     }
 
     private class AsyncFetchStockSymbols extends AsyncTask<String, Void, ArrayList<String>>{
@@ -177,12 +182,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class FavouriteStockAdapter extends ArrayAdapter<StockQuote> {
-
         private List<StockQuote> stockList;
         private Context context;
 
         public FavouriteStockAdapter(Context ctx) {
-            super(ctx, R.layout.favourite_stock_item);
+            super(ctx, R.layout.item_favourite_stock);
             this.context = ctx;
             this.stockList = new ArrayList<StockQuote>();
         }
@@ -196,7 +200,7 @@ public class MainActivity extends AppCompatActivity {
         public View getView(int position, View convertView, ViewGroup parent) {
             if (convertView == null) {
                 LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                convertView = inflater.inflate(R.layout.favourite_stock_item, parent, false);
+                convertView = inflater.inflate(R.layout.item_favourite_stock, parent, false);
             }
             TextView  symbolView = (TextView) convertView.findViewById(R.id.stock_symbol);
             TextView nameView = (TextView) convertView.findViewById(R.id.stock_name);
@@ -218,6 +222,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         public void updateDataSet(ArrayList<StockQuote> newDataSet) {
+            ProgressBar refreshProgress = (ProgressBar) findViewById(R.id.favourite_refresh_progress);
+            refreshProgress.setVisibility(View.GONE);
             stockList.clear();
             stockList.addAll(newDataSet);
             notifyDataSetChanged();
@@ -254,17 +260,19 @@ public class MainActivity extends AppCompatActivity {
                 }
                 ArrayList<StockQuote> newDataSet = new ArrayList<StockQuote>();
                 for (StockQuote quote : mFavouriteStockManager.getAllFavourites()) {
-                    Log.d(TAG, "to update favourite " + quote.getSymbol() + "Message: " + quote.toJSONString());
+                    Log.d(TAG, "update favourite " + quote.getSymbol() + "before message: " + quote.toJSONString());
                     if (stockQuoteMap.containsKey(quote.getSymbol())) {
-                        mFavouriteStockManager.addOrUpdateFavourite(quote);
-                        Log.d(TAG, "updated to favourite");
+                        Log.d(TAG, "update favourite " + quote.getSymbol() + "after message: " + stockQuoteMap.get(quote.getSymbol()).toJSONString());
+                        mFavouriteStockManager.addOrUpdateFavourite(stockQuoteMap.get(quote.getSymbol()));
                     }
                 }
+                updateStockFavouriteView();
             }
         };
         ArrayList<StockQuote> favouriteStocks = mFavouriteStockManager.getAllFavourites();
         fetchQuotesTask.execute(favouriteStocks);
-        updateStockFavouriteView();
+        ProgressBar refreshProgress = (ProgressBar) findViewById(R.id.favourite_refresh_progress);
+        refreshProgress.setVisibility(View.VISIBLE);
     }
     void updateStockFavouriteView() {
         ListView favouriteStockView = (ListView) findViewById(R.id.favourite_stocks_view);
@@ -298,97 +306,40 @@ public class MainActivity extends AppCompatActivity {
     // handle get quote function
     void getQuote(String symbol) {
         // handle get Quote Detial
-        //Intent intentOfDetail = new Intent(MainActivity.this, ResultActivity.class);
-
-        /*************************** headle news feed code end  *******************************/
-        final String newsURL = "http://deliancapp-env.us-west-1.elasticbeanstalk.com/index.php/index.php?bingVal=" + symbol;
-        newsTask = new AsyncTask<Void, Void, Void> () {
+        /*************************** headle fragment_news feed code end  *******************************/
+        AsyncTask<String, Void, String> getNewsTask = new AsyncTask<String, Void, String> () {
             @Override
             protected void onPreExecute() {
                 super.onPreExecute();
             }
             @Override
-            protected Void doInBackground(Void... params) {
-                HttpURLConnection c = null;
-                try {
-                    URL u = new URL(newsURL);
-                    c = (HttpURLConnection) u.openConnection();
-                    c.setRequestMethod("GET");
-                    c.setRequestProperty("Content-length", "0");
-                    c.setUseCaches(false);
-                    c.setAllowUserInteraction(false);
-                    c.setConnectTimeout(5000);
-                    c.setReadTimeout(5000);
-                    c.connect();
-                    int status = c.getResponseCode();
-                    if (status == 200) {
-                        Log.d(TAG, "MainGetnewsString0: ");
-                        BufferedReader br = new BufferedReader(new InputStreamReader(c.getInputStream()));
-                        StringBuilder sb = new StringBuilder();
-                        String line;
-                        while ((line = br.readLine()) != null) {
-                            sb.append(line+"\n");
-                        }
-                        br.close();
-                        //newsJsonString = sb.toString();
-                        return null;
-                    }
-                }catch (Exception e) {
-                    e.printStackTrace();
-                }
-                return null;
-
+            protected String doInBackground(String... params) {
+                return WebFetchHelper.fetchUrl(WebFetchHelper.STOCK_NEWS_URL + params[0]);
             }
 
-            protected void onPostExecute(Void result) {}
+            protected void onPostExecute(String result) {
+                // TODO(dilinmao):
+            }
         };
-        newsTask.execute();
+        getNewsTask.execute(symbol);
 
-        /*************************** headle news feed  code end  *******************************/
-        /// handle stock detail problem
-        final String quoteURL = "http://deliancapp-env.us-west-1.elasticbeanstalk.com/index.php/index.php?symbolVal=" + symbol;
-        mTask = new AsyncTask<Void, Void, Void> () {
+        // handle stock detail problem
+        AsyncTask<String, Void, String> getQuoteTask = new AsyncTask<String, Void, String> () {
             @Override
             protected void onPreExecute() {
                 super.onPreExecute();
             }
             @Override
-            protected Void doInBackground(Void... params) {
-                HttpURLConnection c = null;
-                try {
-                    URL u = new URL(quoteURL);
-                    c = (HttpURLConnection) u.openConnection();
-                    c.setRequestMethod("GET");
-                    c.setRequestProperty("Content-length", "0");
-                    c.setUseCaches(false);
-                    c.setAllowUserInteraction(false);
-                    c.setConnectTimeout(5000);
-                    c.setReadTimeout(5000);
-                    c.connect();
-                    int status = c.getResponseCode();
-                    if (status == 200) {
-                        BufferedReader br = new BufferedReader(new InputStreamReader(c.getInputStream()));
-                        StringBuilder sb = new StringBuilder();
-                        String line;
-                        while ((line = br.readLine()) != null) {
-                            sb.append(line+"\n");
-                        }
-                        br.close();
-                        quoteJsonString = sb.toString();
-                        return null;
-                    }
-                }catch (Exception e) {
-                    e.printStackTrace();
-                }
-                return null;
-
+            protected String doInBackground(String... params) {
+                return WebFetchHelper.fetchUrl(WebFetchHelper.STOCK_QUOTE_URL + params[0]);
             }
 
-            protected void onPostExecute(Void result) {
+            protected void onPostExecute(String result) {
                 super.onPostExecute(result);
                 JSONObject jo = null;
+                Log.d(TAG, "getQuote: " + quoteJsonString);
                 try {
-                    jo = new JSONObject(quoteJsonString);
+                    jo = new JSONObject(result);
                     if(jo.has("Message")){
                         Log.d(TAG, "stock detail has Message or not:" + jo.getString("Message"));
                         AlertDialog.Builder builder = new AlertDialog.Builder(context);
@@ -402,40 +353,30 @@ public class MainActivity extends AppCompatActivity {
                                 });
                         AlertDialog alert = builder.create();
                         alert.show();
-
-                    }else{
-                        if(jo.has("Status") && jo.getString("Status").equals("SUCCESS")){
-                            Log.d(TAG, "has Status" + jo.getString("Status"));
-
-                            Intent intentOfDetail = new Intent(MainActivity.this, ResultActivity.class);
-                            intentOfDetail.putExtra("QuoteReturnString", quoteJsonString);
-                            intentOfDetail.putExtra("newsReturnString", newsJsonString);
-                            startActivity(intentOfDetail);
-                            Log.d(TAG, "getQuote: " + quoteJsonString);
-
-                        }else{
-                            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                            builder.setMessage("Symbol return Status is false, chooose another one")
-                                    .setCancelable(false)
-                                    .setNegativeButton("OK", new DialogInterface.OnClickListener() {
-                                        public void onClick(DialogInterface dialog, int id) {
-                                            //do things
-                                            dialog.cancel();
-                                        }
-                                    });
-                            AlertDialog alert = builder.create();
-                            alert.show();
-                        }
-                        // use the intent function to transfer this to another activity
+                    }else if(jo.has("Status") && jo.getString("Status").equals("SUCCESS")){
+                        Intent intentOfDetail = new Intent(MainActivity.this, ResultActivity.class);
+                        intentOfDetail.putExtra("QuoteReturnString", result);
+                        intentOfDetail.putExtra("newsReturnString", newsJsonString);
+                        startActivity(intentOfDetail);
+                    }else {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                        builder.setMessage("Symbol return Status is false, choose another one")
+                                .setCancelable(false)
+                                .setNegativeButton("OK", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        //do things
+                                        dialog.cancel();
+                                    }
+                                });
+                        AlertDialog alert = builder.create();
+                        alert.show();
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }
         };
-
-        mTask.execute();
-
+        getQuoteTask.execute(symbol);
     }
     // when the get quote button was click
     // Refresh MainActivity Views. e.g. back button to navigate back.

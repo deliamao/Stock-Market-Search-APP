@@ -9,10 +9,10 @@ import android.view.ViewGroup;
 /**
  * Created by deliamao on 5/2/16.
  */
-public class Fragment2 extends Fragment {
+public class PageHistoryFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.historical, container, false);
+        return inflater.inflate(R.layout.fragment_historical, container, false);
     }
 }
 

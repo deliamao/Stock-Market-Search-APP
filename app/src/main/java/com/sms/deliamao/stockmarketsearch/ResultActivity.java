@@ -63,7 +63,7 @@ public class ResultActivity extends AppCompatActivity {
         Log.d(TAG, mStockQuoteJSON.toString());
 
         // Init any UI views in following.
-        setContentView(R.layout.stock_detail);
+        setContentView(R.layout.activity_result);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setTitle(mStockName);
         // you may need to set up toolbar in here later
@@ -92,11 +92,11 @@ public class ResultActivity extends AppCompatActivity {
             }
         });
 
-        /*************************** headle news feed code end  *******************************/
+        /*************************** headle fragment_news feed code end  *******************************/
        if(extras != null){
             Log.d(TAG, "none object " );
             newJson = extras.getString("newsReturnString");
-           // get the whole news feed;
+           // get the whole fragment_news feed;
             Log.d(TAG, "newsReturnString: " );
         }
        //test
@@ -104,7 +104,7 @@ public class ResultActivity extends AppCompatActivity {
         //startActivity(intentOfDetail2);
 
 
-        /*************************** headle news feed  code end  *******************************/
+        /*************************** headle fragment_news feed  code end  *******************************/
 // Crazy ViewList problem
         /*************************** headle stock detail code *******************************/
         String[] rcontent = new String[11];
@@ -140,60 +140,11 @@ public class ResultActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
-        View v = getLayoutInflater().inflate(R.layout.current, null);
-        Log.d(TAG, "view" + v);
-        stockList =(ListView) v.findViewById(R.id.listView);
-        Log.d(TAG, "stockList" + stockList);
-
-        stockList.setAdapter(new StockAdapter(this,rtitle,rcontent));
-        Log.d(TAG, "setAdapther" + this);
     }
 
 
     // new Action
 
-    public class StockAdapter extends ArrayAdapter<String> {
-        String[] title;
-        String[] contents;
-        Context c;
-        LayoutInflater inflater = null;
-        //only set up no image
-
-        public StockAdapter(Context context, String[] title, String[] contents){
-            super(context, R.layout.list_model,title);
-            this.c = context;
-            Log.d(TAG, "context" + c);
-            this.title = title;
-            this.contents = contents;
-            Log.d(TAG, "extra de quote result" + title[5]);
-        }
-
-        public class ViewHolder{
-            TextView stockTitle;
-            TextView  sdCont;
-        }
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent){
-            Log.d(TAG, "this is the view" + convertView);
-            if(convertView == null){
-                inflater =(LayoutInflater)c.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                convertView = inflater.inflate(R.layout.list_model,null);
-                Log.d(TAG, "convertView" + contents[position]);
-                //convertView = getLayoutInflater().inflate(R.layout.list_model, parent, false);
-
-            }
-
-            final ViewHolder holder = new ViewHolder();
-            holder.stockTitle = (TextView) convertView.findViewById(R.id.textView1);
-            holder.sdCont =(TextView) convertView.findViewById(R.id.textView2);
-            //Assign Data
-            holder.stockTitle.setText(title[position]);
-            holder.sdCont.setText(contents[position]);
-            Log.d(TAG, "Adapther test" + contents[position]);
-            return convertView;
-        }
-
-    }
     /*************************** headle stock detail code end  *******************************/
     @Override
     public boolean onSupportNavigateUp(){
@@ -232,7 +183,7 @@ public class ResultActivity extends AppCompatActivity {
                 }
                 return true;
             case R.id.action_fb:
-                // User chose the "Favorite" action, mark the current item
+                // User chose the "Favorite" action, mark the fragment_current item
                 // as a favorite...
                 Log.d(TAG, "action_fb");
                 return true;
@@ -259,11 +210,11 @@ public class ResultActivity extends AppCompatActivity {
         public Fragment getItem(int position) {
             switch(position){
                 case 0:
-                    return new Fragment1();
+                    return PageCurrentFragment.newInstance(mCurrentStockQuote);
                 case 1:
-                    return new Fragment2();
+                    return new PageHistoryFragment();
                 case 2:
-                    return new Fragment3();
+                    return new PageNewsFragment();
                 default:
                     return null;
             }
