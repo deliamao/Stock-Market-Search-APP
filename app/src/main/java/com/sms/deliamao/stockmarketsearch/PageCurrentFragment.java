@@ -75,7 +75,6 @@ public class PageCurrentFragment extends Fragment {
             }
         };
         loadStocImgTask.execute(mQuote.getSymbol());
-
         return view;
     }
     public static void setListViewSize(ListView myListView) {

@@ -12,7 +12,9 @@ public class TestHistorical extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.fragment_historical);
+
         WebView webViewer = (WebView) findViewById(R.id.webView);
+
         webViewer.loadUrl("fragment_historical.html");
 
     }

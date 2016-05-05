@@ -2,6 +2,8 @@ package com.sms.deliamao.stockmarketsearch;
 
 import android.app.ActionBar;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
@@ -19,9 +21,24 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.facebook.FacebookSdk;
+import com.facebook.CallbackManager;
+import com.facebook.FacebookSdk;
+import  com.facebook.appevents.AppEventsLogger;
+import com.facebook.share.model.ShareLinkContent;
+import com.facebook.share.model.SharePhoto;
+import com.facebook.share.model.SharePhotoContent;
+import com.facebook.share.widget.LikeView;
+import com.facebook.share.widget.MessageDialog;
+import com.facebook.share.widget.ShareDialog;
+
+import java.io.IOException;
 
 /**
  * Created by deliamao on 5/2/16.
@@ -35,14 +52,26 @@ public class ResultActivity extends AppCompatActivity {
     private JSONObject mStockQuoteJSON;
     private String mStockId;
     private String mStockName;
+    private String mStockLastPrice;
     private StockQuote mCurrentStockQuote;
+    private String historicalHtmlContent;
 
     ListView stockList;
 
     String quoteJson;
     String  newJson;
+    //facebook post function
+    ShareDialog shareDialog;
+    CallbackManager callbackManager;
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // facebook function:
+        FacebookSdk.sdkInitialize(getApplicationContext());
+        callbackManager = CallbackManager.Factory.create();
+        shareDialog = new ShareDialog(this);
+
+        // historical chart part
+        // update the historical string
 
         // Init any table here.
         mFavouriteStockManager = new FavouriteStockManager(this);
@@ -56,6 +85,13 @@ public class ResultActivity extends AppCompatActivity {
                 mCurrentStockQuote = new StockQuote(mStockQuoteJSON);
                 mStockId = mStockQuoteJSON.getString("Symbol");
                 mStockName = mStockQuoteJSON.getString("Name");
+                mStockLastPrice = mStockQuoteJSON.getString("LastPrice");
+                // update the historical string
+                try {
+                    historicalHtmlContent = IOUtils.toString(getAssets().open("historical.html")).replaceAll("%test%", mStockId);
+                } catch (IOException ex) {
+                    System.out.println(ex.toString());
+                }
             } catch (JSONException e) {
                 Log.e(TAG, "Unable to parse QuoteReturnString.");
                 finish();
@@ -186,6 +222,23 @@ public class ResultActivity extends AppCompatActivity {
             case R.id.action_fb:
                 // User chose the "Favorite" action, mark the fragment_current item
                 // as a favorite...
+
+                // facebook function
+                String stockImg = "http://chart.finance.yahoo.com/t?s="+mStockId+"&lang=en-US&width=300&height=300";
+                String title = "Current Stock Price of "+ mStockName+ " is $" + mStockLastPrice;
+                String subhead = "Stock Information of "+mStockName;
+                String yahooURL ="http://finance.yahoo.com/q?s=" + mStockId;
+
+                if (ShareDialog.canShow(ShareLinkContent.class)) {
+                    ShareLinkContent linkContent = new ShareLinkContent.Builder()
+                            .setContentTitle(title)
+                            .setContentDescription(subhead)
+                            .setContentUrl(Uri.parse(yahooURL))
+                            .setImageUrl(Uri.parse(stockImg))
+                            .build();
+
+                    shareDialog.show(linkContent);
+                }
                 Log.d(TAG, "action_fb");
                 return true;
 
@@ -198,7 +251,19 @@ public class ResultActivity extends AppCompatActivity {
 
         }
     }
+    /// facebook Function
 
+    protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        callbackManager.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            Toast.makeText(ResultActivity.this, "you share this post", Toast.LENGTH_SHORT).show();
+        }else{
+            Toast.makeText(ResultActivity.this, "you didn't share this post", Toast.LENGTH_SHORT).show();
+        }
+
+
+    }
 
     private class ViewPagerAdapter extends FragmentPagerAdapter{
         private String fragments [] = {"CURRENT", "HISTORICAL", "NEWS"};
@@ -211,9 +276,10 @@ public class ResultActivity extends AppCompatActivity {
         public Fragment getItem(int position) {
             switch(position){
                 case 0:
-                    return PageCurrentFragment.newInstance(mCurrentStockQuote);
+                    return  PageCurrentFragment.newInstance(mCurrentStockQuote);
                 case 1:
-                    return new PageHistoryFragment();
+                    return  PageHistoryFragment.newInstance(historicalHtmlContent);
+
                 case 2:
                     return new PageNewsFragment();
                 default:
