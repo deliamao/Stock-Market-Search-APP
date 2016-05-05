@@ -8,7 +8,5 @@
     <string name="tab_text2">chart</string>
     <string name="action_favorite">Stock Market Search</string>
     <string name="action_fb">Share to Facebook</string>
-
     <string name="facebook_app_id">1022804554470568</string>
-
 </resources>

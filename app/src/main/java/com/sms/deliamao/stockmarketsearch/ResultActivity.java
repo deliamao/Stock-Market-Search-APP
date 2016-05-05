@@ -1,8 +1,8 @@
 package com.sms.deliamao.stockmarketsearch;
 
-
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
@@ -20,12 +20,13 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-import android.net.Uri;
 import android.widget.Toast;
 
+import org.apache.commons.io.IOUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import com.facebook.FacebookSdk;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookSdk;
 import  com.facebook.appevents.AppEventsLogger;
@@ -36,6 +37,7 @@ import com.facebook.share.widget.LikeView;
 import com.facebook.share.widget.MessageDialog;
 import com.facebook.share.widget.ShareDialog;
 
+import java.io.IOException;
 
 /**
  * Created by deliamao on 5/2/16.
@@ -50,26 +52,25 @@ public class ResultActivity extends AppCompatActivity {
     private String mStockId;
     private String mStockName;
     private String mStockLastPrice;
-
     private StockQuote mCurrentStockQuote;
-    // facebook text ;
-
-    ShareDialog shareDialog;
-    CallbackManager callbackManager;
+    private String historicalHtmlContent;
 
     ListView stockList;
 
     String quoteJson;
     String  newJson;
+    //facebook post function
+    ShareDialog shareDialog;
+    CallbackManager callbackManager;
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // facebook:
+        // facebook function:
         FacebookSdk.sdkInitialize(getApplicationContext());
         callbackManager = CallbackManager.Factory.create();
         shareDialog = new ShareDialog(this);
 
-
+        // historical chart part
+        // update the historical string
 
         // Init any table here.
         mFavouriteStockManager = new FavouriteStockManager(this);
@@ -84,6 +85,12 @@ public class ResultActivity extends AppCompatActivity {
                 mStockId = mStockQuoteJSON.getString("Symbol");
                 mStockName = mStockQuoteJSON.getString("Name");
                 mStockLastPrice = mStockQuoteJSON.getString("LastPrice");
+                // update the historical string
+                try {
+                    historicalHtmlContent = IOUtils.toString(getAssets().open("historical.html")).replaceAll("%test%", mStockId);
+                } catch (IOException ex) {
+                    System.out.println(ex.toString());
+                }
             } catch (JSONException e) {
                 Log.e(TAG, "Unable to parse QuoteReturnString.");
                 finish();
@@ -92,7 +99,7 @@ public class ResultActivity extends AppCompatActivity {
         Log.d(TAG, mStockQuoteJSON.toString());
 
         // Init any UI views in following.
-        setContentView(R.layout.stock_detail);
+        setContentView(R.layout.activity_result);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setTitle(mStockName);
         // you may need to set up toolbar in here later
@@ -121,19 +128,19 @@ public class ResultActivity extends AppCompatActivity {
             }
         });
 
-        /*************************** headle news feed code end  *******************************/
-        if(extras != null){
+        /*************************** headle fragment_news feed code end  *******************************/
+       if(extras != null){
             Log.d(TAG, "none object " );
             newJson = extras.getString("newsReturnString");
-            // get the whole news feed;
+           // get the whole fragment_news feed;
             Log.d(TAG, "newsReturnString: " );
         }
-        //test
+       //test
         //Intent intentOfDetail2 = new Intent(ResultActivity.this, TestHistorical.class);
         //startActivity(intentOfDetail2);
 
 
-        /*************************** headle news feed  code end  *******************************/
+        /*************************** headle fragment_news feed  code end  *******************************/
 // Crazy ViewList problem
         /*************************** headle stock detail code *******************************/
         String[] rcontent = new String[11];
@@ -169,60 +176,11 @@ public class ResultActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
-        View v = getLayoutInflater().inflate(R.layout.current, null);
-        Log.d(TAG, "view" + v);
-        stockList =(ListView) v.findViewById(R.id.listView);
-        Log.d(TAG, "stockList" + stockList);
-
-        stockList.setAdapter(new StockAdapter(this,rtitle,rcontent));
-        Log.d(TAG, "setAdapther" + this);
     }
 
 
     // new Action
 
-    public class StockAdapter extends ArrayAdapter<String> {
-        String[] title;
-        String[] contents;
-        Context c;
-        LayoutInflater inflater = null;
-        //only set up no image
-
-        public StockAdapter(Context context, String[] title, String[] contents){
-            super(context, R.layout.list_model,title);
-            this.c = context;
-            Log.d(TAG, "context" + c);
-            this.title = title;
-            this.contents = contents;
-            Log.d(TAG, "extra de quote result" + title[5]);
-        }
-
-        public class ViewHolder{
-            TextView stockTitle;
-            TextView  sdCont;
-        }
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent){
-            Log.d(TAG, "this is the view" + convertView);
-            if(convertView == null){
-                inflater =(LayoutInflater)c.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                convertView = inflater.inflate(R.layout.list_model,null);
-                Log.d(TAG, "convertView" + contents[position]);
-                //convertView = getLayoutInflater().inflate(R.layout.list_model, parent, false);
-
-            }
-
-            final ViewHolder holder = new ViewHolder();
-            holder.stockTitle = (TextView) convertView.findViewById(R.id.textView1);
-            holder.sdCont =(TextView) convertView.findViewById(R.id.textView2);
-            //Assign Data
-            holder.stockTitle.setText(title[position]);
-            holder.sdCont.setText(contents[position]);
-            Log.d(TAG, "Adapther test" + contents[position]);
-            return convertView;
-        }
-
-    }
     /*************************** headle stock detail code end  *******************************/
     @Override
     public boolean onSupportNavigateUp(){
@@ -261,6 +219,9 @@ public class ResultActivity extends AppCompatActivity {
                 }
                 return true;
             case R.id.action_fb:
+                // User chose the "Favorite" action, mark the fragment_current item
+                // as a favorite...
+
                 // facebook function
                 String stockImg = "http://chart.finance.yahoo.com/t?s="+mStockId+"&lang=en-US&width=300&height=300";
                 String title = "Current Stock Price of "+ mStockName+ " is $" + mStockLastPrice;
@@ -277,9 +238,6 @@ public class ResultActivity extends AppCompatActivity {
 
                     shareDialog.show(linkContent);
                 }
-
-                // User chose the "Favorite" action, mark the current item
-                // as a favorite...
                 Log.d(TAG, "action_fb");
                 return true;
 
@@ -292,19 +250,19 @@ public class ResultActivity extends AppCompatActivity {
 
         }
     }
-   /// facebook Function
+    /// facebook Function
+
     protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         callbackManager.onActivityResult(requestCode, resultCode, data);
-            if (resultCode == RESULT_OK) {
-                Toast.makeText(ResultActivity.this, "you share this post", Toast.LENGTH_SHORT).show();
-            }else{
-                Toast.makeText(ResultActivity.this, "you didn't share this post", Toast.LENGTH_SHORT).show();
-            }
+        if (resultCode == RESULT_OK) {
+            Toast.makeText(ResultActivity.this, "you share this post", Toast.LENGTH_SHORT).show();
+        }else{
+            Toast.makeText(ResultActivity.this, "you didn't share this post", Toast.LENGTH_SHORT).show();
+        }
 
 
     }
-
 
     private class ViewPagerAdapter extends FragmentPagerAdapter{
         private String fragments [] = {"CURRENT", "HISTORICAL", "NEWS"};
@@ -317,11 +275,11 @@ public class ResultActivity extends AppCompatActivity {
         public Fragment getItem(int position) {
             switch(position){
                 case 0:
-                    return new Fragment1();
+                    return  PageCurrentFragment.newInstance(mCurrentStockQuote);
                 case 1:
-                    return new Fragment2();
+                    return  PageHistoryFragment.newInstance(historicalHtmlContent);
                 case 2:
-                    return new Fragment3();
+                    return new PageNewsFragment();
                 default:
                     return null;
             }

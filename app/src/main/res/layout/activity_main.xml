@@ -84,22 +84,28 @@
             android:layout_height="30dp"
             android:layout_weight="0.4"
             android:text="Auto Refresh"
-            android:id="@+id/switch1"/>
+            android:id="@+id/button_auto_refresh_favourite"/>
 
         <ImageButton
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="0.1"
             android:background="@null"
-            android:id="@+id/imageButton"
+            android:id="@+id/button_refresh_favourite"
             android:src="@drawable/ic_refresh"/>
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-
         android:orientation="vertical">
+        <ProgressBar
+            android:id="@+id/favourite_refresh_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="5dp">
+        </ProgressBar>
+
         <ListView
             android:id="@+id/favourite_stocks_view"
             android:layout_width="match_parent"
