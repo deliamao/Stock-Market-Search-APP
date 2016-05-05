@@ -2,13 +2,13 @@ package com.sms.deliamao.stockmarketsearch;
 
 
 import android.content.Context;
-import android.graphics.Color;
-import android.graphics.drawable.Icon;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -17,8 +17,15 @@ import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 /**
  * Created by deliamao on 5/2/16.
@@ -41,7 +48,33 @@ public class PageCurrentFragment extends Fragment {
         stockDetailView.setAdapter(new StockDetailAdapter(getContext()));
         setListViewSize(stockDetailView);
 
+        final ImageView stockImgView = (ImageView) view.findViewById(R.id.stock_detail_image);
 
+        AsyncTask<String, Void, Bitmap> loadStocImgTask = new AsyncTask<String, Void, Bitmap>() {
+            @Override
+            protected Bitmap doInBackground(String... params) {
+                try {
+                    URL urlConnection = new URL(WebFetchHelper.STOCK_DETAIL_IMG_URL + params[0]);
+                    HttpURLConnection connection = (HttpURLConnection) urlConnection
+                            .openConnection();
+                    connection.setDoInput(true);
+                    connection.connect();
+                    InputStream input = connection.getInputStream();
+                    Bitmap myBitmap = BitmapFactory.decodeStream(input);
+                    return myBitmap;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(Bitmap result) {
+                super.onPostExecute(result);
+                stockImgView.setImageBitmap(result);
+            }
+        };
+        loadStocImgTask.execute(mQuote.getSymbol());
 
         return view;
     }
@@ -103,13 +136,13 @@ public class PageCurrentFragment extends Fragment {
             // Price
             item = new StockDetailItem();
             item.name = "LASTPRICE";
-            item.value = String.format("%.2f", mQuote.getPrice());
+            item.value = NumberFormatHelper.formateDouble(mQuote.getPrice(), false, false, false);
             stockDetails.add(item);
             // Change
             item = new StockDetailItem();
             item.name = "CHANGE";
-            item.value = FormatHelper.getNumberPrefix(mQuote.getChange()) + String.format("%.2f", Math.abs(mQuote.getChange())) +
-                    "(" + FormatHelper.getNumberPrefix(mQuote.getChangePercent()) + String.format("%.2f%%", Math.abs(mQuote.getChangePercent())) + ")";
+            item.value = NumberFormatHelper.formateDouble(mQuote.getChange(), true, false, false) +
+                    "(" + NumberFormatHelper.formateDouble(mQuote.getChangePercent(), true, true, false) + ")";
 
             if (mQuote.getChangePercent() > 0) {
                 item.withIcon = true;
@@ -123,22 +156,30 @@ public class PageCurrentFragment extends Fragment {
             item = new StockDetailItem();
             item.name = "TIMESTAMP";
             item.value = mQuote.getTimestamp();
+            if (mQuote.getTimestamp().length() != 0) {
+                String timestamp = mQuote.getTimestamp();
+                String year = timestamp.substring(timestamp.length() - 4, timestamp.length());
+                String time = timestamp.substring(timestamp.length() - 23, timestamp.length() - 15);
+                String date = timestamp.substring(4, timestamp.length() - 24);
+                item.value = date + " " + year + ", " + time;
+            }
+
             stockDetails.add(item);
             // Market Cap
             item = new StockDetailItem();
             item.name = "MARKETCAP";
-            item.value = String.format("%.2f Billion", mQuote.getMarketCap() / 1000000000);
+            item.value = NumberFormatHelper.formateDouble(mQuote.getMarketCap(), false, false, true);
             stockDetails.add(item);
             // volum
             item = new StockDetailItem();
             item.name = "VOLUME";
-            item.value = String.format("%.2f Million", mQuote.getVolume() / 1000000000);
+            item.value = NumberFormatHelper.formateDouble(mQuote.getVolume(), false, false, true);
             stockDetails.add(item);
             // Change YTD
             item = new StockDetailItem();
             item.name = "CHANGEYTD";
-            item.value = String.format("%.2f", mQuote.getChangeYTD()) +
-                    "(" + FormatHelper.getNumberPrefix(mQuote.getChangePercentYTD()) + String.format("%.2f%%", Math.abs(mQuote.getChangePercentYTD())) + ")";
+            item.value = NumberFormatHelper.formateDouble(mQuote.getChangeYTD(), false, false, false) +
+                    "(" + NumberFormatHelper.formateDouble(mQuote.getChangePercentYTD(), true, true, false) + ")";
             if (mQuote.getChangePercentYTD() > 0) {
                 item.withIcon = true;
                 item.iconId = R.drawable.ic_arrow_up;

@@ -16,25 +16,22 @@
         android:layout_height="80dp"
         android:orientation="vertical"
         android:layout_weight="0"
+        android:padding="5dp"
         android:weightSum="1">
         <TextView
             android:layout_width="match_parent"
             android:layout_weight="0.1"
             android:layout_height="25dp"
             android:text="@string/search_label"
-            android:textSize="20dp"
+            android:textSize="22dp"
             android:textStyle="bold"
             android:textColor="#000000" />
         <AutoCompleteTextView
-            android:id="@+id/autoCompleteTextView1"
+            android:id="@+id/autoCompleteTextView"
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:ems="10"
-            android:layout_below="@+id/stock_info"
-            android:layout_alignLeft="@+id/stock_info"
-            android:layout_alignStart="@+id/stock_info"
-            android:layout_marginTop="3dp"
-            android:hint="AutoComplete TextView">
+            android:layout_marginTop="3dp">
             <requestFocus />
         </AutoCompleteTextView>
     </LinearLayout>
@@ -64,52 +61,66 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="50dp"
+        android:layout_height="40dp"
+        android:layout_marginTop="15dp"
         android:padding="5dp"
         android:layout_weight="0"
         android:weightSum="1"
+        android:layout_gravity="center"
         android:orientation="horizontal">
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:gravity="center|left"
-            android:layout_weight="0.5"
+            android:layout_weight="0.58"
             android:text="@string/Fav"
-            android:textSize="20dp"
+            android:textSize="22dp"
             android:textStyle="bold"
             android:textColor="#000000" />
 
         <Switch
             android:layout_width="0dp"
-            android:layout_height="30dp"
-            android:layout_weight="0.4"
+            android:layout_height="match_parent"
+            android:layout_weight="0.32"
+            android:textSize="12dp"
             android:text="Auto Refresh"
-            android:id="@+id/button_auto_refresh_favourite"/>
+            android:id="@+id/button_auto_refresh_favourite"
+            android:checked="false" />
 
         <ImageButton
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="0.1"
+            android:scaleType="fitCenter"
             android:background="@null"
             android:id="@+id/button_refresh_favourite"
-            android:src="@drawable/ic_refresh"/>
+            android:src="@drawable/ic_refresh" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:padding="5dp"
         android:orientation="vertical">
-        <ProgressBar
-            android:id="@+id/favourite_refresh_progress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginRight="5dp">
-        </ProgressBar>
-
-        <ListView
-            android:id="@+id/favourite_stocks_view"
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-        </ListView>
+            android:layout_height="match_parent"
+            android:layout_margin="10dp"
+            android:alpha="1">
+
+            <ProgressBar
+                android:id="@+id/favourite_refresh_progress"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="center"/>
+
+            <com.sms.deliamao.stockmarketsearch.SlideCutListView
+                android:id="@+id/favourite_stocks_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:cacheColorHint="#B3B3B3"
+                android:layout_gravity="center">
+            </com.sms.deliamao.stockmarketsearch.SlideCutListView>
+        </FrameLayout>
     </LinearLayout>
 </LinearLayout>

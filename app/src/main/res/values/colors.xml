@@ -6,5 +6,6 @@
     <color name="indicator">#ecd95a</color>
     <color name="tab_indicator">#3F51B5</color>
     <color name="tab_bg">#00000000</color>
-
+    <drawable name="focused">#ff5500</drawable>
+    <drawable name="selected">#FF00FF</drawable>
 </resources>

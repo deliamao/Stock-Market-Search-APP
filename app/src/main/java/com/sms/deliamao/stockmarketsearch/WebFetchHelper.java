@@ -19,6 +19,7 @@ public class WebFetchHelper {
     public static final String STOCK_SYMBOL_URL = "http://deliancapp-env.us-west-1.elasticbeanstalk.com/index.php/index.php?input=";
     public static final String STOCK_QUOTE_URL = "http://deliancapp-env.us-west-1.elasticbeanstalk.com/index.php/index.php?symbolVal=";
     public static final String STOCK_NEWS_URL = "http://deliancapp-env.us-west-1.elasticbeanstalk.com/index.php/index.php?bingVal=";
+    public static final String STOCK_DETAIL_IMG_URL = "http://chart.finance.yahoo.com/t?&lang=en-US&width=550&height=400&s=";
     public static String fetchUrl(String url) {
         String response = "";
         try {

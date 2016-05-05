@@ -22,6 +22,7 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -39,16 +40,21 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private AutoCompleteTextView suggestionTextView;
+    ProgressBar refreshProgressBar;
     AsyncTask<Void, Void, Void> hischartTask;
     String quoteJsonString = "";
     String newsJsonString ="";
     Context context;
     FavouriteStockManager mFavouriteStockManager;
+    TaskScheduler taskScheduler;
+    Runnable autoRefreshTask;
+    boolean isLoading = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mFavouriteStockManager = new FavouriteStockManager(this);
+        taskScheduler = new TaskScheduler();
 
         setContentView(R.layout.activity_main);
         context = this;
@@ -57,38 +63,61 @@ public class MainActivity extends AppCompatActivity {
             /* restore state */
         }
 
-        suggestionTextView=(AutoCompleteTextView)findViewById(R.id.autoCompleteTextView1);
+        suggestionTextView=(AutoCompleteTextView)findViewById(R.id.autoCompleteTextView);
 
         AutoCompleteAdapter autoCompleteAdapter = new AutoCompleteAdapter(this, android.R.layout.simple_dropdown_item_1line);
 
         suggestionTextView.setAdapter(autoCompleteAdapter);
-        suggestionTextView.setThreshold(1); // setup how many letter need to call
+        suggestionTextView.setThreshold(3); // setup how many letter need to call
         Log.d(TAG, "this is test");
 
         Button clearButton = (Button)findViewById(R.id.clear);
         clearButton.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                // do something when the button is clicked
-                AutoCompleteTextView inputInfo = (AutoCompleteTextView) findViewById(R.id.autoCompleteTextView1);
-                //get inputInfo value by getText()；
-                inputInfo.setText("");
+                suggestionTextView.setText("");
             }
         });
 
         Button quoteButton = (Button)findViewById(R.id.getQuote);
         quoteButton.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                AutoCompleteTextView inputInfo = (AutoCompleteTextView) findViewById(R.id.autoCompleteTextView1);
-                String symbol = inputInfo.getText().toString();
+                String symbol = suggestionTextView.getText().toString();
                 if (verifyQuoteInput()) {
                     getQuote(symbol);
                 }
             }
         });
 
+        ImageButton refreshButton = (ImageButton)findViewById(R.id.button_refresh_favourite);
+        refreshButton.setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                Log.d(TAG, "updateStockFavouriteDataAndView");
+                updateStockFavouriteDataAndView();
+            }
+        });
+        autoRefreshTask = new Runnable() {
+            @Override
+            public void run() {
+                updateStockFavouriteDataAndView();
+            }
+        };
+        Switch autoRefreshButton = (Switch)findViewById(R.id.button_auto_refresh_favourite);
+        autoRefreshButton.setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                Switch autoRefreshButton = (Switch)v;
+                if (autoRefreshButton.isChecked()) {
+                    Log.d(TAG, "start up auto refresh favourite");
+                    taskScheduler.scheduleAtFixedRate(autoRefreshTask, 2000, 15000);
+                } else {
+                    Log.d(TAG, "stop auto refresh favourite");
+                    taskScheduler.stop(autoRefreshTask);
+                }
+            }
+        });
+
         // Create favourite stocks ListView.
-        ArrayAdapter adapter = new FavouriteStockAdapter(this);
-        ListView favouriteStocksView = (ListView) findViewById(R.id.favourite_stocks_view);
+        final FavouriteStockAdapter adapter = new FavouriteStockAdapter(this);
+        SlideCutListView favouriteStocksView = (SlideCutListView) findViewById(R.id.favourite_stocks_view);
         favouriteStocksView.setDivider(null);
         favouriteStocksView.setAdapter(adapter);
         favouriteStocksView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -100,50 +129,44 @@ public class MainActivity extends AppCompatActivity {
                 getQuote(clickStock.getSymbol());
             }
         });
-        updateStockFavouriteDataAndView();
-        ImageButton refreshButton = (ImageButton)findViewById(R.id.button_refresh_favourite);
-        refreshButton.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                Log.d(TAG, "updateStockFavouriteDataAndView");
-                updateStockFavouriteDataAndView();
+        favouriteStocksView.setRemoveListener(new SlideCutListView.RemoveListener() {
+            @Override
+            public void removeItem(SlideCutListView.RemoveDirection direction, int position) {
+                final StockQuote stock = (StockQuote)adapter.getItem(position);
+                adapter.hideItem(position);
+                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                builder.setMessage("Want to delete " + stock.getName() + "from favourites?")
+                        .setCancelable(false)
+                        .setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                adapter.recoverHidedItem();
+                                dialog.cancel();
+                            }
+                        })
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                adapter.deleteHidedItem();
+                                dialog.cancel();mFavouriteStockManager.removeFavourite(stock.getSymbol());
+                            }
+                        });
+                AlertDialog alert = builder.create();
+                alert.show();
             }
         });
-    }
-
-    private class AsyncFetchStockSymbols extends AsyncTask<String, Void, ArrayList<String>>{
-        private static final String TAG = "AsyncFetchStockSymbols";
-        @Override
-        protected ArrayList<String> doInBackground(String... constraint) {
-            ArrayList<String> stockSymbols = new ArrayList<String>();
-            Log.e(TAG, "Fetching symbol: " + constraint[0]);
-            String url = WebFetchHelper.STOCK_SYMBOL_URL + constraint[0];
-            String jsonString = WebFetchHelper.fetchUrl(url);
-            JSONArray jo = null;
-            try {
-                jo = new JSONArray(jsonString);
-                for(int i = 0; i<jo.length();i++ ){
-                    JSONObject e = jo.getJSONObject(i);
-                    String symbol = e.getString("Symbol");
-                    Log.d(TAG, "get: " + symbol);
-                    stockSymbols.add(symbol);
-                }
-            } catch (JSONException e) {
-                Log.e(TAG, "Error to parse stock json: " + e.getMessage());
-            }
-            return stockSymbols;
-        }
-
-        @Override
-        protected void onPostExecute(ArrayList<String> result) {}
+        updateStockFavouriteDataAndView();
     }
 
     private class AutoCompleteAdapter extends ArrayAdapter {
-        ArrayList<String> mSymbols;
+        ArrayList<StockSuggestion> mStockSuggestions;
+        class StockSuggestion {
+            public String symbol;
+            public String name;
+            public String exchange;
+        }
         public AutoCompleteAdapter(Context context, int textViewResourceId){
             super(context, textViewResourceId);
-            mSymbols = new ArrayList<String>();
+            mStockSuggestions = new ArrayList<StockSuggestion>();
         }
-
         @Override
         public Filter getFilter() {
             Filter autoCompleteFilter = new Filter(){
@@ -152,13 +175,13 @@ public class MainActivity extends AppCompatActivity {
                     FilterResults filterResults = new FilterResults();
                     if(constraint != null) {
                         try {
-                            mSymbols = new AsyncFetchStockSymbols().execute(new String[]{constraint.toString()}).get();
+                            mStockSuggestions = new AsyncFetchStockSymbols().execute(new String[]{constraint.toString()}).get();
                         } catch(Exception e) {
                             Log.e("AsyncFetchStockSymbols", e.getMessage());
                         }
                         // Now assign the values and count to the FilterResults object
-                        filterResults.values = mSymbols;
-                        filterResults.count = mSymbols.size();
+                        filterResults.values = mStockSuggestions;
+                        filterResults.count = mStockSuggestions.size();
                     }
                     return filterResults;
                 }
@@ -167,8 +190,8 @@ public class MainActivity extends AppCompatActivity {
                     if(results != null && results.count > 0) {
                         Log.d(TAG, "Result numbers: " + results.count);
                         clear();
-                        for (String symbol : (ArrayList<String>)results.values) {
-                            add(symbol);
+                        for (StockSuggestion s : (ArrayList<StockSuggestion>)results.values) {
+                            add(s);
                         }
                         notifyDataSetChanged();
                     }
@@ -176,13 +199,65 @@ public class MainActivity extends AppCompatActivity {
                         notifyDataSetInvalidated();
                     }
                 }
+
+                class AsyncFetchStockSymbols extends AsyncTask<String, Void, ArrayList<StockSuggestion>>{
+                    private static final String TAG = "AsyncFetchStockSymbols";
+                    @Override
+                    protected ArrayList<StockSuggestion> doInBackground(String... constraint) {
+                        ArrayList<StockSuggestion> stockSuggestions = new ArrayList<StockSuggestion>();
+                        Log.d(TAG, "Fetching symbol: " + constraint[0]);
+                        String url = WebFetchHelper.STOCK_SYMBOL_URL + constraint[0];
+                        String jsonString = WebFetchHelper.fetchUrl(url);
+                        Log.d(TAG, "Auto complete result:" + jsonString);
+                        JSONArray jo = null;
+                        try {
+                            jo = new JSONArray(jsonString);
+                            for(int i = 0; i<jo.length();i++ ){
+                                JSONObject e = jo.getJSONObject(i);
+                                StockSuggestion suggestion = new StockSuggestion();
+                                suggestion.symbol = e.getString("Symbol");
+                                suggestion.name = e.getString("Name");
+                                suggestion.exchange = e.getString("Exchange");
+                                stockSuggestions.add(suggestion);
+                            }
+                        } catch (JSONException e) {
+                            Log.e(TAG, "Error to parse stock json: " + e.getMessage());
+                        }
+                        return stockSuggestions;
+                    }
+
+                    @Override
+                    protected void onPostExecute(ArrayList<StockSuggestion> result) {}
+                }
             };
             return autoCompleteFilter;
+        }
+        public int getCount() {
+            return mStockSuggestions.size();
+        }
+        public String getItem(int position) {
+            return mStockSuggestions.get(position).symbol;
+        }
+
+        public View getView(int position, View convertView, ViewGroup parent) {
+            if (convertView == null) {
+                LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                convertView = inflater.inflate(R.layout.item_auto_complete, parent, false);
+            }
+            TextView  symbolView = (TextView) convertView.findViewById(R.id.auto_complete_symbol);
+            TextView nameView = (TextView) convertView.findViewById(R.id.auto_complete_name);
+
+            StockSuggestion suggestion = mStockSuggestions.get(position);
+            symbolView.setText(suggestion.symbol);
+            nameView.setText(suggestion.name + " (" + suggestion.exchange + ")" );
+            return convertView;
         }
     }
 
     private class FavouriteStockAdapter extends ArrayAdapter<StockQuote> {
         private List<StockQuote> stockList;
+        private StockQuote hidedItem;
+        private int hidedItemIndex = 0;
         private Context context;
 
         public FavouriteStockAdapter(Context ctx) {
@@ -210,23 +285,43 @@ public class MainActivity extends AppCompatActivity {
             StockQuote stock = stockList.get(position);
             symbolView.setText(stock.getSymbol());
             nameView.setText(stock.getName());
-            priceView.setText("$ " + String.format("%.2f", stock.getPrice()));
-            changeView.setText((stock.getChangePercent() >= 0 ? "+ " : "- ") + String.format("%.2f", Math.abs(stock.getChangePercent())) + "%");
-            if (stock.getChangePercent() > 0) {
+            priceView.setText("$ " + NumberFormatHelper.formateDouble(stock.getPrice(), false, false, false));
+            changeView.setText(NumberFormatHelper.formateDouble(stock.getChangePercent(), true, true, false));
+            if (stock.getChangePercent() == 0) {
+                changeView.setBackgroundColor(Color.GRAY);
+            } else if (stock.getChangePercent() > 0) {
                 changeView.setBackgroundColor(Color.GREEN);
             } else {
                 changeView.setBackgroundColor(Color.RED);
             }
-            marketCapView.setText("Market Cap: " + String.format("$%.2f", stock.getMarketCap() / 1000000000) + " Billion");
+            marketCapView.setText("Market Cap: " + NumberFormatHelper.formateDouble(stock.getMarketCap(), false, false, true));
             return convertView;
         }
 
         public void updateDataSet(ArrayList<StockQuote> newDataSet) {
-            ProgressBar refreshProgress = (ProgressBar) findViewById(R.id.favourite_refresh_progress);
-            refreshProgress.setVisibility(View.GONE);
+            findViewById(R.id.favourite_refresh_progress).setVisibility(View.GONE);
             stockList.clear();
             stockList.addAll(newDataSet);
             notifyDataSetChanged();
+        }
+        public void hideItem(int position) {
+            if (position >= stockList.size()) {
+                return;
+            }
+            hidedItemIndex = position;
+            hidedItem = stockList.get(position);
+            stockList.remove(hidedItemIndex);
+            notifyDataSetChanged();
+        }
+        public void recoverHidedItem() {
+            if (hidedItem == null || hidedItemIndex > stockList.size()) {
+                return;
+            }
+            stockList.add(hidedItemIndex, hidedItem);
+            notifyDataSetChanged();
+        }
+        public void deleteHidedItem() {
+            hidedItem = null;
         }
     }
 
@@ -271,8 +366,7 @@ public class MainActivity extends AppCompatActivity {
         };
         ArrayList<StockQuote> favouriteStocks = mFavouriteStockManager.getAllFavourites();
         fetchQuotesTask.execute(favouriteStocks);
-        ProgressBar refreshProgress = (ProgressBar) findViewById(R.id.favourite_refresh_progress);
-        refreshProgress.setVisibility(View.VISIBLE);
+        findViewById(R.id.favourite_refresh_progress).setVisibility(View.VISIBLE);
     }
     void updateStockFavouriteView() {
         ListView favouriteStockView = (ListView) findViewById(R.id.favourite_stocks_view);
@@ -282,18 +376,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     boolean verifyQuoteInput() {
-        AutoCompleteTextView inputInfo = (AutoCompleteTextView) findViewById(R.id.autoCompleteTextView1);
-        String symbol = inputInfo.getText().toString();
-        Log.d(TAG, "getquote: " + inputInfo.getText().toString());
+        String symbol = suggestionTextView.getText().toString();
         //validate if the input is blank;
         if(symbol.length()== 0) {
-            Log.d(TAG, "length0 " + inputInfo.getText().toString());
             AlertDialog.Builder builder = new AlertDialog.Builder(context);
             builder.setMessage("please enter a Stock Name/Symbol")
                     .setCancelable(false)
                     .setNegativeButton("OK", new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
-                            //do things
                             dialog.cancel();
                         }
                     });
@@ -305,6 +395,11 @@ public class MainActivity extends AppCompatActivity {
     }
     // handle get quote function
     void getQuote(String symbol) {
+        if (isLoading) {
+            return;
+        }
+        isLoading = true;
+
         // handle get Quote Detial
         /*************************** headle fragment_news feed code end  *******************************/
         AsyncTask<String, Void, String> getNewsTask = new AsyncTask<String, Void, String> () {
@@ -374,6 +469,7 @@ public class MainActivity extends AppCompatActivity {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+                isLoading = false;
             }
         };
         getQuoteTask.execute(symbol);
