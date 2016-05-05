@@ -278,6 +278,7 @@ public class ResultActivity extends AppCompatActivity {
                     return  PageCurrentFragment.newInstance(mCurrentStockQuote);
                 case 1:
                     return  PageHistoryFragment.newInstance(historicalHtmlContent);
+
                 case 2:
                     return new PageNewsFragment();
                 default:

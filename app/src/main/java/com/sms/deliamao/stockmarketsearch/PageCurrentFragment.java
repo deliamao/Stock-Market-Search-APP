@@ -40,7 +40,6 @@ public class PageCurrentFragment extends Fragment {
         ListView stockDetailView = (ListView) view.findViewById(R.id.stock_detail_list_view);
         stockDetailView.setAdapter(new StockDetailAdapter(getContext()));
         setListViewSize(stockDetailView);
-
         return view;
     }
     public static void setListViewSize(ListView myListView) {
